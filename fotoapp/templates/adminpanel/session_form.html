@@ -1,37 +1,16 @@
 {% extends "adminpanel/base_adminpanel.html" %}
-
 {% block content %}
-
-<h2 class="mb-4">
-    {% if session %}Edytuj sesję{% else %}Dodaj sesję{% endif %}
-</h2>
-
-<form method="POST" enctype="multipart/form-data" class="card p-4 shadow-sm">
+<h2>{% if session %}Edytuj{% else %}Dodaj{% endif %} sesję</h2>
+<form method="POST" class="card p-4 shadow-sm">
     {% csrf_token %}
-
     <div class="mb-3">
-        <label class="form-label">Nazwa sesji</label>
-        <input type="text" name="name" class="form-control"
-               value="{{ session.name|default:'' }}" required>
+        <label class="form-label">Nazwa</label>
+        <input type="text" name="name" class="form-control" value="{{ session.name|default:'' }}" required>
     </div>
-
     <div class="mb-3">
-        <label class="form-label">Kod dostępu</label>
-        <input type="text" name="code" class="form-control"
-               value="{{ session.code|default:'' }}" required>
+        <label class="form-label">Opis</label>
+        <textarea name="description" class="form-control">{{ session.description|default:'' }}</textarea>
     </div>
-
-    <div class="mb-3">
-        <label class="form-label">Miniaturka (zdjęcie główne)</label>
-        <input type="file" name="cover_image" class="form-control">
-    </div>
-
-    {% if session.cover_image %}
-    <p>Aktualna miniatura:</p>
-    <img src="{{ session.cover_image.url }}" style="width:200px; border-radius:6px;">
-    {% endif %}
-
-    <button type="submit" class="btn btn-success mt-3">Zapisz</button>
+    <button type="submit" class="btn btn-success mt-2">Zapisz</button>
 </form>
-
 {% endblock %}
