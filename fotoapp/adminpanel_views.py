@@ -24,14 +24,22 @@ def session_add(request):
     return render(request, "adminpanel/session_form.html")
 
 @login_required
-def session_edit(request, id):
+def session_edit_photos(request, id):
     session = get_object_or_404(Session, id=id)
-    if request.method == "POST":
+    photos = session.photos.all().order_by("-id")
+
+    # Obsługa zapisu danych sesji
+    if request.method == "POST" and "save_session" in request.POST:
         session.name = request.POST.get("name")
         session.description = request.POST.get("description", "")
         session.save()
-        return redirect("panel_sessions")
-    return render(request, "adminpanel/session_form.html", {"session": session})
+        return redirect("panel_session_edit_photos", id=session.id)
+
+    return render(request, "adminpanel/session_edit_photos.html", {
+        "session": session,
+        "photos": photos
+    })
+
 
 @login_required
 def session_delete(request, id):

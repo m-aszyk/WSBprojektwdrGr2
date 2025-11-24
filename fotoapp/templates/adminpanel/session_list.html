@@ -4,6 +4,7 @@
     <h2>Sesje</h2>
     <a href="{% url 'panel_session_add' %}" class="btn btn-primary">Dodaj sesję</a>
 </div>
+
 <div class="row">
     {% for s in sessions %}
     <div class="col-md-4 mb-4">
@@ -18,9 +19,9 @@
             <div class="card-body">
                 <h5 class="card-title">{{ s.name }}</h5>
                 <p>{{ s.description }}</p>
-                <a href="{% url 'panel_session_edit' s.id %}" class="btn btn-sm btn-secondary">Edytuj</a>
+                <!-- LINK DO POŁĄCZONEGO WIDOKU EDYCJI + ZDJĘĆ -->
+                <a href="{% url 'panel_session_edit_photos' s.id %}" class="btn btn-sm btn-secondary">Edytuj</a>
                 <a href="{% url 'panel_session_delete' s.id %}" class="btn btn-sm btn-danger">Usuń</a>
-                <a href="{% url 'panel_session_photos' s.id %}" class="btn btn-sm btn-primary">Zdjęcia</a>
             </div>
         </div>
     </div>

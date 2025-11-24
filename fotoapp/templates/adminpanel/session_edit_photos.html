@@ -1,0 +1,37 @@
+{% extends "adminpanel/base_adminpanel.html" %}
+
+{% block content %}
+<h2>Edytuj sesję i zarządzaj zdjęciami</h2>
+
+<!-- FORMULARZ SESJI -->
+<form method="POST" class="card p-4 mb-4 shadow-sm">
+    {% csrf_token %}
+    <input type="hidden" name="save_session" value="1">
+    <div class="mb-3">
+        <label class="form-label">Nazwa sesji</label>
+        <input type="text" name="name" class="form-control" value="{{ session.name }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Opis</label>
+        <textarea name="description" class="form-control">{{ session.description }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-success">Zapisz sesję</button>
+</form>
+
+<!-- UPLOAD ZDJĘĆ -->
+<div class="card p-4 mb-4 bg-light shadow-sm border text-center"
+     hx-post="{% url 'panel_session_photos_upload' session.id %}"
+     hx-target="#photo-grid"
+     hx-swap="innerHTML"
+     enctype="multipart/form-data">
+    <input type="file" name="images" multiple class="form-control mb-3"
+           onchange="this.form.dispatchEvent(new Event('submit'))">
+    <p class="text-muted">Przeciągnij i upuść zdjęcia lub wybierz pliki ręcznie</p>
+</div>
+
+<!-- GRID ZDJĘĆ -->
+<div id="photo-grid">
+    {% include "adminpanel/partials/photo_grid.html" %}
+</div>
+
+{% endblock %}
