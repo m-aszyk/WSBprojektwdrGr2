@@ -45,38 +45,181 @@ def check_password(request):
 
 def gallery_view(request, access_token):
     """
-    Widok galerii zdjęć dla użytkownika z unikalnym tokenem dostępu.
-    Ustawia flagę 'gallery_access' w sesji użytkownika.
-    Dla każdego zdjęcia generuje zaszyfrowany token ścieżki (do bezpiecznego serwowania).
+    Wyświetla galerię zdjęć dla danego tokenu dostępu.
+    Ustawia flagi sesji dla dalszego dostępu.
     """
     session = get_object_or_404(Session, access_token=access_token)
     photos = session.photos.all()
     request.session['gallery_access'] = True
+    request.session['gallery_session_id'] = session.id
+    request.session.modified = True
+    
     for photo in photos:
         photo.token = encrypt_path(photo.image.name)
-    return render(request, 'fotoapp/gallery.html', {'session': session, 'photos': photos})
+    
+    return render(request, 'fotoapp/gallery.html', {
+        'session': session,
+        'photos': photos
+    })
 
 
 def serve_encrypted_image(request, token):
     """
-    Serwuje obraz po zaszyfrowanej ścieżce, tylko z widoku galerii i jako <img>.
+    Serwuje obraz po zaszyfrowanej ścieżce.
+    Dostęp dozwolony jeśli:
+      - sesja ma 'gallery_access' OR
+      - referer pochodzi z /gallery/ lub /panel-klienta
     """
     try:
-        referer = request.META.get('HTTP_REFERER', '')
-        sec_fetch_dest = request.META.get('HTTP_SEC_FETCH_DEST', '')
-        if not referer or '/gallery/' not in referer:
-            return HttpResponseForbidden("Dostęp zabroniony. Brak sesji.")
-        if not request.session.get('gallery_access'):
-            return HttpResponseForbidden("Dostęp zabroniony. Brak sesji.")
-        if sec_fetch_dest != 'image':
-            return HttpResponseForbidden("Dostęp zabroniony. Brak sesji.")
+        referer = request.META.get('HTTP_REFERER', '') or ''
+        sec_fetch_dest = request.META.get('HTTP_SEC_FETCH_DEST', '') or ''
+
+        allowed_referers = ('/gallery/', '/panel-klienta')
+        referer_ok = any(r in referer for r in allowed_referers)
+
+        if sec_fetch_dest and sec_fetch_dest != 'image':
+            return HttpResponseForbidden("Dostęp zabroniony. Nieprawidłowy kontekst żądania.")
+
+        if not request.session.get('gallery_access') and not referer_ok:
+            return HttpResponseForbidden("Dostęp zabroniony. Brak sesji lub nieprawidłowy referer.")
+
         path = decrypt_path(token)
         full_path = os.path.join(settings.MEDIA_ROOT, path)
+        
         if not os.path.isfile(full_path):
             raise FileNotFoundError
+        
         return FileResponse(open(full_path, 'rb'), content_type='image/jpeg')
+    except FileNotFoundError:
+        raise Http404("Plik nie istnieje")
     except Exception:
         raise Http404("Błędny token lub plik nie istnieje")
+
+
+def client_panel(request):
+    """
+    Panel klienta — wyświetla historię zamówień z podglądami zdjęć.
+    """
+    if not request.session.get('gallery_access'):
+        request.session['gallery_access'] = True
+        request.session.modified = True
+
+    photos = []
+    session_id = request.session.get('gallery_session_id')
+    gallery_url = None
+    
+    if session_id:
+        try:
+            session_obj = Session.objects.get(id=session_id)
+            photos = list(session_obj.photos.all()[:6])
+            gallery_url = reverse('gallery_view', args=[session_obj.access_token])
+        except Session.DoesNotExist:
+            photos = []
+            gallery_url = None
+
+    orders = [
+        {
+            "id": 1,
+            "date": "2025-10-10",
+            "total": "149.97",
+            "items": [
+                {"photo": photos[0] if len(photos) > 0 else None, "qty": 1, "price": "49.99"},
+                {"photo": photos[1] if len(photos) > 1 else None, "qty": 2, "price": "49.99"},
+            ]
+        },
+        {
+            "id": 2,
+            "date": "2025-10-15",
+            "total": "99.98",
+            "items": [
+                {"photo": photos[2] if len(photos) > 2 else None, "qty": 1, "price": "49.99"},
+                {"photo": photos[3] if len(photos) > 3 else None, "qty": 1, "price": "49.99"},
+            ]
+        }
+    ]
+
+    for order in orders:
+        for item in order["items"]:
+            p = item.get("photo")
+            if p:
+                try:
+                    token = encrypt_path(p.image.name)
+                    item["thumb"] = request.build_absolute_uri(reverse("serve_encrypted_image", args=[token]))
+                except Exception:
+                    item["thumb"] = ""
+            else:
+                item["thumb"] = ""
+
+    return render(request, 'fotoapp/klient/client_panel.html', {
+        'orders': orders,
+        'gallery_url': gallery_url,
+    })
+
+
+def client_order_detail(request, order_id: int):
+    """
+    Szczegóły zamówienia klienta.
+    """
+    if not request.session.get('gallery_access'):
+        request.session['gallery_access'] = True
+        request.session.modified = True
+
+    session_id = request.session.get('gallery_session_id')
+    if not session_id:
+        return HttpResponseForbidden("Brak informacji o sesji galerii.")
+
+    try:
+        session_obj = Session.objects.get(id=session_id)
+        photos = list(session_obj.photos.all()[:6])
+    except Session.DoesNotExist:
+        return HttpResponseForbidden("Brak informacji o sesji galerii.")
+
+    sample_orders = {
+        1: {
+            "id": 1,
+            "date": "2025-10-10",
+            "total": "149.97",
+            "items": [
+                {"photo": photos[0] if len(photos) > 0 else None, "qty": 1, "price": "49.99"},
+                {"photo": photos[1] if len(photos) > 1 else None, "qty": 2, "price": "49.99"},
+            ]
+        },
+        2: {
+            "id": 2,
+            "date": "2025-10-15",
+            "total": "99.98",
+            "items": [
+                {"photo": photos[2] if len(photos) > 2 else None, "qty": 1, "price": "49.99"},
+                {"photo": photos[3] if len(photos) > 3 else None, "qty": 1, "price": "49.99"},
+            ]
+        }
+    }
+
+    order = sample_orders.get(order_id)
+    if not order:
+        raise Http404("Zamówienie nie istnieje")
+
+    for item in order["items"]:
+        p = item.get("photo")
+        if p:
+            try:
+                token = encrypt_path(p.image.name)
+                item["thumb"] = request.build_absolute_uri(reverse("serve_encrypted_image", args=[token]))
+            except Exception:
+                item["thumb"] = ""
+        else:
+            item["thumb"] = ""
+
+        try:
+            qty = int(item.get("qty", 0))
+            price = float(item.get("price", 0))
+            item["line_total"] = f"{(qty * price):.2f}"
+        except Exception:
+            item["line_total"] = "0.00"
+
+    return render(request, 'fotoapp/klient/order_detail.html', {
+        'order': order,
+    })
 
 
 # ===============================

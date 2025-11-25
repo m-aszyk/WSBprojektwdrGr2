@@ -1,0 +1,92 @@
+{% load static %}
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <title>Szczegóły zamówienia #{{ order.id }}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:Arial, sans-serif;margin:20px;color:#222}
+    header#mainHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .logo-left img{height:44px}
+    .nav-right{display:flex;gap:8px;align-items:center}
+    .cart-icon{display:inline-block;padding:8px 14px;background:#2b7b73;color:#fff;border-radius:24px;text-decoration:none;font-weight:600}
+    .back{margin-bottom:12px;display:inline-block}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border:1px solid #eaeaea;text-align:left}
+    img.thumb{width:120px;object-fit:cover}
+    .right{text-align:right}
+  </style>
+</head>
+<body>
+
+  <header id="mainHeader">
+    <div class="logo-left">
+      <a href="{% url 'home' %}"><img src="{% static 'images/logo.png' %}" alt="Logo Kilar Fotografia" /></a>
+    </div>
+    <div class="nav-right">
+      <a href="{% url 'client_panel' %}" class="cart-icon">
+        ← Powrót do historii zamówień
+      </a>
+    </div>
+  </header>
+
+  <h1>Zamówienie #{{ order.id }}</h1>
+  <div class="muted">Data: {{ order.date }} · Razem: {{ order.total }} PLN</div>
+
+  <table style="margin-top:12px">
+    <thead>
+      <tr><th>Podgląd</th><th>Plik / Opis</th><th>Ilość</th><th class="right">Cena</th><th class="right">Wartość</th></tr>
+    </thead>
+    <tbody>
+      {% for item in order.items %}
+        <tr>
+          <td>
+            {% if item.thumb %}
+              <img class="thumb" src="{{ item.thumb }}" alt="Podgląd">
+            {% else %}
+              (brak zdjęcia)
+            {% endif %}
+          </td>
+          <td>
+            {% if item.photo and item.photo.title %}
+              {{ item.photo.title }}
+            {% elif item.photo %}
+              {{ item.photo.image.name }}
+            {% else %}
+              ---
+            {% endif %}
+          </td>
+          <td>{{ item.qty }}</td>
+          <td class="right">{{ item.price }} PLN</td>
+          <td class="right">{{ item.line_total }} PLN</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p style="margin-top:12px"><strong>Razem:</strong> {{ order.total }} PLN</p>
+
+  <p style="margin-top:12px">
+    <button id="download-invoice" class="cart-icon" style="background:#007acc;padding:8px 12px;border-radius:6px;border:0;color:#fff;font-weight:600;">
+      Pobierz fakturę
+    </button>
+  </p>
+
+  <script>
+    (function(){
+      var btn = document.getElementById('download-invoice');
+      if(btn){
+        btn.addEventListener('click', function(e){
+          e.preventDefault();
+          alert('Faktura');
+        });
+      }
+    })();
+  </script>
+
+  <footer>
+    <p>&copy; 2025 Kilar Fotografia. Wszelkie prawa zastrzeżone.</p>
+  </footer>
+</body>
+</html>

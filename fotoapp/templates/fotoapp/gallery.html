@@ -18,6 +18,11 @@
       <button type="button" id="open-mini-cart" class="cart-icon">
         🛒 Koszyk (<span id="cart-count">{{ cart_count }}</span>)
       </button>
+      {% if request.session.gallery_access %}
+        <a href="{% url 'client_panel' %}" id="client-panel-btn" class="cart-icon" style="margin-left:8px;">
+          👤 Panel klienta
+        </a>
+      {% endif %}
     </div>
   </header>
 

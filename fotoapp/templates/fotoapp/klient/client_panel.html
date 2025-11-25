@@ -1,0 +1,92 @@
+{% load static %}
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <title>Panel klienta — Historia zamówień</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #222; background: #f9f9f9; }
+    header#mainHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; background: white; padding: 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .logo-left img { height: 44px; }
+    .nav-right { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .cart-icon { display: inline-block; padding: 8px 14px; background: #2b7b73; color: #fff; border-radius: 24px; text-decoration: none; font-weight: 600; transition: background 0.2s; }
+    .cart-icon:hover { background: #1f5951; }
+    .cart-icon.secondary { background: #666; }
+    .cart-icon.secondary:hover { background: #555; }
+    h1 { margin-top: 0; }
+    .order { background: white; border: 1px solid #eaeaea; padding: 16px; margin-bottom: 16px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .order h2 { margin: 0 0 8px 0; font-size: 1.2em; }
+    .meta { color: #666; font-size: 0.9em; }
+    .items { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+    .item { display: flex; gap: 12px; align-items: flex-start; flex: 1; min-width: 250px; padding: 8px; background: #f9f9f9; border-radius: 4px; }
+    img.thumb { width: 80px; height: 56px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+    .item-placeholder { width: 80px; height: 56px; background: #e8e8e8; display: flex; align-items: center; justify-content: center; color: #999; border-radius: 4px; flex-shrink: 0; }
+    .item-info { flex: 1; }
+    .item-title { font-weight: 600; margin-bottom: 4px; }
+    a.button { display: inline-block; padding: 8px 12px; background: #007acc; color: #fff; text-decoration: none; border-radius: 4px; transition: background 0.2s; margin-top: 10px; }
+    a.button:hover { background: #005a9e; }
+    footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eaeaea; color: #999; font-size: 0.9em; text-align: center; }
+    .no-orders { background: white; padding: 20px; border-radius: 6px; text-align: center; color: #666; }
+  </style>
+</head>
+<body>
+
+  <header id="mainHeader">
+    <div class="logo-left">
+      <a href="{% url 'home' %}"><img src="{% static 'images/logo.png' %}" alt="Logo Kilar Fotografia" /></a>
+    </div>
+    <div class="nav-right">
+      <a href="{{ gallery_url|default:'#' }}" class="cart-icon">← Powrót do galerii</a>
+      <a href="{% url 'home' %}" class="cart-icon secondary">Strona główna</a>
+    </div>
+  </header>
+
+  <h1>Historia zamówień</h1>
+
+  {% if orders %}
+    {% for order in orders %}
+      <div class="order">
+        <h2>Zamówienie #{{ order.id }}</h2>
+        <div class="meta">📅 Data: {{ order.date }} · 💰 Razem: <strong>{{ order.total }} PLN</strong></div>
+
+        <div class="items">
+          {% for item in order.items %}
+            <div class="item">
+              {% if item.thumb %}
+                <img class="thumb" src="{{ item.thumb }}" alt="Podgląd zdjęcia">
+              {% else %}
+                <div class="item-placeholder">—</div>
+              {% endif %}
+              <div class="item-info">
+                <div class="item-title">
+                  {% if item.photo.title %}
+                    {{ item.photo.title }}
+                  {% elif item.photo %}
+                    {{ item.photo.image.name|truncatechars:30 }}
+                  {% else %}
+                    (brak informacji)
+                  {% endif %}
+                </div>
+                <div class="meta">Ilość: {{ item.qty }} · Cena: {{ item.price }} PLN</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <a class="button" href="{% url 'client_order_detail' order.id %}">Pokaż szczegóły →</a>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="no-orders">
+      <p>📭 Brak zamówień</p>
+      <a href="{% url 'home' %}" class="button">Wróć do strony głównej</a>
+    </div>
+  {% endif %}
+
+  <footer>
+    <p>&copy; 2025 Kilar Fotografia. Wszelkie prawa zastrzeżone.</p>
+  </footer>
+</body>
+</html>
