@@ -19,12 +19,50 @@
             <div class="card-body">
                 <h5 class="card-title">{{ s.name }}</h5>
                 <p>{{ s.description }}</p>
-                <!-- LINK DO POŁĄCZONEGO WIDOKU EDYCJI + ZDJĘĆ -->
                 <a href="{% url 'panel_session_edit_photos' s.id %}" class="btn btn-sm btn-secondary">Edytuj</a>
-                <a href="{% url 'panel_session_delete' s.id %}" class="btn btn-sm btn-danger">Usuń</a>
+                <button type="button" class="btn btn-sm btn-danger" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#deleteModal" 
+                        data-session-id="{{ s.id }}" 
+                        data-session-name="{{ s.name }}">
+                    Usuń
+                </button>
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
+
+<!-- MODAL USUWANIA -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Potwierdzenie usunięcia</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+      </div>
+      <div class="modal-body">
+        Czy na pewno chcesz usunąć sesję <strong id="modal-session-name"></strong>?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+        <a href="#" class="btn btn-danger" id="confirm-delete-btn">Usuń</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+    var deleteModal = document.getElementById('deleteModal')
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget
+        var sessionId = button.getAttribute('data-session-id')
+        var sessionName = button.getAttribute('data-session-name')
+        var modalTitle = deleteModal.querySelector('#modal-session-name')
+        var confirmBtn = deleteModal.querySelector('#confirm-delete-btn')
+
+        modalTitle.textContent = sessionName
+        confirmBtn.href = "{% url 'panel_session_delete' 0 %}".replace('/0/', '/' + sessionId + '/')
+    })
+</script>
 {% endblock %}
