@@ -7,8 +7,8 @@
 
 <div class="row">
     {% for s in sessions %}
-    <div class="col-md-4 mb-4">
-        <div class="card shadow-sm">
+    <div class="col-md-4 mb-4 d-flex">
+        <div class="card shadow-sm w-100 h-100 d-flex flex-column">
             {% if s.cover_photo %}
             <img src="{{ s.cover_photo.image.url }}" class="card-img-top" style="height:200px; object-fit:cover;">
             {% else %}
@@ -16,17 +16,19 @@
                 Brak miniatury
             </div>
             {% endif %}
-            <div class="card-body">
+            <div class="card-body d-flex flex-column">
                 <h5 class="card-title">{{ s.name }}</h5>
-                <p>{{ s.description }}</p>
-                <a href="{% url 'panel_session_edit_photos' s.id %}" class="btn btn-sm btn-secondary">Edytuj</a>
-                <button type="button" class="btn btn-sm btn-danger" 
-                        data-bs-toggle="modal" 
-                        data-bs-target="#deleteModal" 
-                        data-session-id="{{ s.id }}" 
-                        data-session-name="{{ s.name }}">
-                    Usuń
-                </button>
+                <p class="card-text flex-grow-1">{{ s.description }}</p>
+                <div class="mt-auto d-flex gap-2">
+                    <a href="{% url 'panel_session_edit' s.id %}" class="btn btn-sm btn-secondary">Edytuj</a>
+                    <button type="button" class="btn btn-sm btn-danger" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#deleteModal" 
+                            data-session-id="{{ s.id }}" 
+                            data-session-name="{{ s.name }}">
+                        Usuń
+                    </button>
+                </div>
             </div>
         </div>
     </div>

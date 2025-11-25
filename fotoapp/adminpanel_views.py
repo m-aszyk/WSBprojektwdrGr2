@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from .models.session import Session
 from .models.photo import Photo
 
@@ -16,45 +16,45 @@ def session_list(request):
     return render(request, "adminpanel/session_list.html", {"sessions": sessions})
 
 @login_required
-def session_add(request):
+def session_form(request, id=None):
+    """
+    id=None -> tworzenie nowej sesji
+    id=int -> edycja istniejącej sesji
+    """
+    session = None
+    if id:
+        session = get_object_or_404(Session, id=id)
+
     if request.method == "POST":
         name = request.POST.get("name")
         description = request.POST.get("description")
         password = request.POST.get("password")
 
-        session = Session.objects.create(
-            name=name,
-            description=description,
-            password=password
-        )
+        if session:
+            # Edycja istniejącej sesji
+            session.name = name
+            session.description = description
+            session.password = password
+            session.save()
+            messages.success(request, "Zmiany w sesji zapisane!")
+        else:
+            # Tworzenie nowej sesji
+            session = Session.objects.create(
+                name=name,
+                description=description,
+                password=password
+            )
+            messages.success(request, "Nowa sesja została utworzona!")
+            # Po utworzeniu nowej sesji od razu redirect do edycji
+            return redirect('panel_session_edit', id=session.id)
 
-        if request.FILES.getlist("images"):
-            for img in request.FILES.getlist("images"):
-                Photo.objects.create(session=session, image=img)
+    # Pobieranie istniejących zdjęć tylko jeśli sesja istnieje
+    photos = session.photos.all() if session else []
 
-        messages.success(request, "Nowa sesja została utworzona!")
-        return redirect('panel_session_edit_photos', id=session.id)
-
-    return render(request, "adminpanel/session_form.html")
-
-@login_required
-def session_edit_photos(request, id):
-    session = get_object_or_404(Session, id=id)
-    photos = session.photos.all().order_by("-id")
-
-    # Zapis danych sesji
-    if request.method == "POST" and "save_session" in request.POST:
-        session.name = request.POST.get("name")
-        session.password = request.POST.get("password", session.password)
-        session.description = request.POST.get("description", "")
-        session.save()
-        return redirect("panel_session_edit_photos", id=session.id)
-
-    return render(request, "adminpanel/session_edit_photos.html", {
+    return render(request, "adminpanel/session_form.html", {
         "session": session,
         "photos": photos
     })
-
 
 @login_required
 def session_delete(request, id):
@@ -88,11 +88,15 @@ def set_cover_photo(request, photo_id):
     session = photo.session
     session.cover_photo = photo
     session.save()
-    return redirect("panel_session_photos", id=session.id)
+    photos = session.photos.all()
+    html = render(request, "adminpanel/partials/photo_grid.html", {"photos": photos}).content.decode('utf-8')
+    return JsonResponse({"html": html})
 
 @login_required
 def photo_delete(request, photo_id):
     photo = get_object_or_404(Photo, id=photo_id)
-    session_id = photo.session.id
+    session = photo.session
     photo.delete()
-    return redirect("panel_session_photos", id=session_id)
+    photos = session.photos.all()
+    html = render(request, "adminpanel/partials/photo_grid.html", {"photos": photos}).content.decode('utf-8')
+    return JsonResponse({"html": html})
