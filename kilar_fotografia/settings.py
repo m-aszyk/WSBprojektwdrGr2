@@ -148,8 +148,8 @@ TEMPLATES[0]["OPTIONS"]["context_processors"] += [
 
 
 # demo stripe'a
-STRIPE_PUBLIC_KEY = 'pk_test_51SbkNjPEDmDYtmB9toFXHnpVkBcYN8OVMUGxMWH0erbuiMpdZyhmvZ53G4IR7sUyNOW7pTkAfMsVKilh2tj7zuSe00IxaRoOLD' # Twój klucz publiczny ze Stripe Dashboard
-STRIPE_SECRET_KEY = 'sk_test_51SbkNjPEDmDYtmB9y4gpQV0SoRfArbPvUE54ZoHdqaknDrw2ZK71C11KyxgQsXZLdDPI3O5sPIgYcSfzJzL0BpNV00ntfEgsAi' # Twój klucz prywatny ze Stripe Dashboard
+STRIPE_PUBLIC_KEY = 'pk-klucz' # Twój klucz publiczny ze Stripe Dashboard
+STRIPE_SECRET_KEY = 'sk-klucz' # Twój klucz prywatny ze Stripe Dashboard
 PRICE_PER_PHOTO = 25.00  # Cena za jedno zdjęcie (PLN)
 
 # Email - placeholder na potrzeby projektu
@@ -158,5 +158,5 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'kilarprojekt@gmail.com'
-EMAIL_HOST_PASSWORD = 'Kilarprojekt1!' 
+EMAIL_HOST_PASSWORD = 'haselko' 
 DEFAULT_FROM_EMAIL = 'Kilar Fotografia <kilarprojekt@gmail.com>'
