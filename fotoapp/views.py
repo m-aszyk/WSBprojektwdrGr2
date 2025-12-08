@@ -8,7 +8,7 @@ from django.http import FileResponse, Http404, HttpResponseForbidden, JsonRespon
 from django.views.decorators.http import require_POST
 from django.conf import settings
 from django.urls import reverse
-
+from django.core.mail import send_mail
 from .models.session import Session
 from .models.photo import Photo
 from .utils import decrypt_path, encrypt_path
@@ -178,12 +178,12 @@ def cart_view(request):
 def create_checkout_session(request):
     """
     Tworzy sesję płatności w Stripe na podstawie zawartości koszyka.
+    Przekazuje session_id do URL sukcesu, aby pobrać email klienta.
     """
     cart = get_cart(request)
     if not cart:
         return redirect('home')
 
-    
     domain = request.build_absolute_uri('/')[:-1] 
 
     line_items = []
@@ -199,7 +199,6 @@ def create_checkout_session(request):
         if not photo:
             continue
             
-        # CENA W GROSZACH!!!! WAZNE
         unit_amount = int(float(entry.get('price', 0)) * 100)
         
         line_items.append({
@@ -207,11 +206,10 @@ def create_checkout_session(request):
                 'currency': 'pln',
                 'product_data': {
                     'name': f'Zdjęcie #{photo.id}',
-                    # Opcjonalnie: 'images': [absolute_url_to_image],
                 },
                 'unit_amount': unit_amount,
             },
-            'quantity': 1, # Zawsze 1 sztuka zdjęcia
+            'quantity': 1,
         })
 
     if not line_items:
@@ -222,8 +220,8 @@ def create_checkout_session(request):
             payment_method_types=['card', 'blik'],
             line_items=line_items,
             mode='payment',
-            success_url=domain + reverse('payment_success'),
-            cancel_url=domain + reverse('home'), # Tutaj możesz dać powrót do galerii
+            success_url=domain + reverse('payment_success') + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=domain + reverse('home'),
         )
         return redirect(checkout_session.url, code=303)
     except Exception as e:
@@ -233,14 +231,26 @@ def create_checkout_session(request):
 def payment_success(request):
     """
     Obsługuje powrót po udanej płatności:
-    1. Pobiera zdjęcia z koszyka.
-    2. Pakuje je do ZIP.
-    3. Czyści koszyk.
-    4. Wyświetla stronę sukcesu z linkiem do pobrania.
+    1. Pobiera email ze Stripe (jeśli dostępny).
+    2. Pakuje zdjęcia do ZIP.
+    3. Wysyła maila z linkiem (w osobnym bloku try/except).
+    4. Czyści koszyk.
     """
+    # stripe get mail
+    session_id = request.GET.get('session_id')
+    customer_email = None
+
+    if session_id:
+        try:
+            session_details = stripe.checkout.Session.retrieve(session_id)
+            if session_details.customer_details:
+                customer_email = session_details.customer_details.email
+        except Exception as e:
+            print(f"Błąd pobierania danych ze Stripe: {e}")
+
+
     cart = get_cart(request)
     if not cart:
-        # Zabezpieczenie: jeśli ktoś odświeży stronę po wyczyszczeniu koszyka
         return render(request, 'fotoapp/homepage.html', {'error': 'Sesja wygasła lub koszyk jest pusty.'})
 
     ids = [int(pid) for pid in cart.keys()]
@@ -253,31 +263,48 @@ def payment_success(request):
     if not os.path.exists(zip_dir):
         os.makedirs(zip_dir)
 
-    # nazwa pliku na podstawie sesji
     session_key = request.session.session_key or 'unknown'
     zip_filename = f"zamowienie_{session_key[:8]}.zip"
     zip_filepath = os.path.join(zip_dir, zip_filename)
-    zip_url = f"{settings.MEDIA_URL}zips/{zip_filename}"
+    
+    zip_relative_url = f"{settings.MEDIA_URL}zips/{zip_filename}"
+    zip_absolute_url = request.build_absolute_uri(zip_relative_url)
 
     # zipowanie
     try:
         with zipfile.ZipFile(zip_filepath, 'w') as zip_file:
             for photo in photos:
-                # Ścieżka do ORYGINAŁU (bez znaku wodnego)
                 original_path = photo.image.path 
                 if os.path.exists(original_path):
                     zip_file.write(original_path, arcname=os.path.basename(original_path))
     except Exception as e:
-        print(f"Błąd tworzenia ZIP: {e}")
-        return render(request, 'fotoapp/homepage.html', {'error': 'Wystąpił błąd podczas generowania plików.'})
+        print(f"!!! BŁĄD TWORZENIA ZIP: {e}")
+        return render(request, 'fotoapp/homepage.html', {'error': 'Wystąpił błąd podczas generowania plików (ZIP).'})
 
+    # wysylanie maila
+    email_sent = False
+    if customer_email:
+        try:
+            print(f"Próbuję wysłać maila na: {customer_email}...")
+            send_mail(
+                subject='Twoje zdjęcia - Kilar Fotografia',
+                message=f'Dziękujemy za zakup!\n\nTwoje zdjęcia są gotowe do pobrania pod tym linkiem:\n{zip_absolute_url}\n\nPozdrawiamy,\nZespół Kilar Fotografia',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[customer_email],
+                fail_silently=False,
+            )
+            print("Mail wysłany pomyślnie!")
+            email_sent = True
+        except Exception as e:
+            print(f"!!! BŁĄD WYSYŁANIA MAILA: {e}")
 
     request.session['cart'] = {}
     request.session.modified = True
 
-    # sukces
     context = {
-        'zip_url': zip_url,
-        'count': photos.count()
+        'zip_url': zip_relative_url,
+        'count': photos.count(),
+        'email': customer_email,
+        'email_error': not email_sent and customer_email is not None # Informacja dla template'u
     }
     return render(request, 'fotoapp/success.html', context)

@@ -158,5 +158,5 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'kilarprojekt@gmail.com'
-EMAIL_HOST_PASSWORD = '-' 
+EMAIL_HOST_PASSWORD = 'Kilarprojekt1!' 
 DEFAULT_FROM_EMAIL = 'Kilar Fotografia <kilarprojekt@gmail.com>'
