@@ -111,6 +111,32 @@ document.getElementById('photo-grid').addEventListener('click', function(e) {
         });
     }
 });
+
+// --- AJAX dla ustawiania cen ---
+document.querySelectorAll(".save-price-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+
+        const photoId = btn.dataset.photoId;
+        const input = document.querySelector(`.price-input[data-photo-id="${photoId}"]`);
+        const status = btn.parentElement.querySelector(".price-status");
+
+        const formData = new FormData();
+        formData.append("price", input.value);
+        formData.append("csrfmiddlewaretoken", "{{ csrf_token }}");
+
+        fetch(`/admin/photos/${photoId}/update-price/`, {
+            method: "POST",
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                status.classList.remove("d-none");
+                setTimeout(() => status.classList.add("d-none"), 1500);
+            }
+        });
+    });
+});
 </script>
 {% endif %}
 

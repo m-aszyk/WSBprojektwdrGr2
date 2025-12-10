@@ -125,3 +125,19 @@ def photo_delete(request, photo_id):
     photos = session.photos.all()
     html = render(request, "adminpanel/partials/photo_grid.html", {"photos": photos}).content.decode('utf-8')
     return JsonResponse({"html": html})
+
+@login_required
+def photo_update_price(request, photo_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=400)
+
+    photo = get_object_or_404(Photo, id=photo_id)
+
+    new_price = request.POST.get("price")
+    try:
+        photo.price = float(new_price)
+        photo.save()
+        return JsonResponse({"success": True, "price": photo.price})
+    except:
+        return JsonResponse({"error": "Invalid price"}, status=400)
+
