@@ -32,7 +32,7 @@ def panel_logout(request):
 
 @login_required
 def dashboard(request):
-    return render(request, "adminpanel/dashboard.html")
+    return redirect('panel_sessions')
 
 # --- SESJE ---
 @login_required
